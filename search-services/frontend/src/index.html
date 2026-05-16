@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Policom</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{
+      --bg:#06050e;
+      --text:rgba(232,228,255,0.86);
+      --muted:rgba(232,228,255,0.28);
+      --accent:#a78bfa;
+      --cx:50%;--cy:50%;
+    }
+    html{scroll-behavior:smooth;}
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",sans-serif;
+      background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;
+    }
+
+    /* ── SVG FILTERS ── */
+    .svg-f{position:fixed;width:0;height:0;overflow:hidden;pointer-events:none;}
+
+    /* ── ORBS ── */
+    .scene{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+    .orb{position:absolute;border-radius:50%;will-change:transform;animation:drift linear infinite;}
+    .o1{width:1100px;height:1100px;background:radial-gradient(circle at 40% 40%,rgba(76,29,149,.7) 0%,transparent 62%);top:-400px;left:-350px;animation-duration:36s;filter:blur(65px);}
+    .o2{width:780px;height:780px;background:radial-gradient(circle at 60% 60%,rgba(14,78,153,.58) 0%,transparent 62%);bottom:-300px;right:-260px;animation-duration:28s;animation-delay:-12s;filter:blur(75px);}
+    .o3{width:620px;height:620px;background:radial-gradient(circle at 50% 50%,rgba(109,40,217,.48) 0%,transparent 62%);top:35%;left:50%;animation-duration:22s;animation-delay:-19s;filter:blur(88px);}
+    @keyframes drift{0%,100%{transform:translate(0,0) scale(1);}25%{transform:translate(32px,-26px) scale(1.03);}50%{transform:translate(-22px,36px) scale(.97);}75%{transform:translate(26px,14px) scale(1.02);}}
+
+    /* ── MOUSE WATER GLOW ── */
+    .mouse-glow{
+      position:fixed;width:560px;height:560px;border-radius:50%;
+      pointer-events:none;z-index:2;
+      left:var(--cx);top:var(--cy);
+      transform:translate(-50%,-50%);
+      background:radial-gradient(circle at center,
+        rgba(167,139,250,.10) 0%,
+        rgba(109,40,217,.04) 40%,
+        transparent 70%
+      );
+      filter:blur(28px);
+      transition:left .12s cubic-bezier(.22,1,.36,1),top .12s cubic-bezier(.22,1,.36,1);
+    }
+
+    /* ── HEADER ── */
+    header{
+      position:fixed;top:0;left:0;right:0;z-index:100;height:58px;
+      display:flex;align-items:center;padding:0 24px;
+      background:transparent;
+      border:none;
+    }
+    header::after{display:none;}
+    .logo{
+      position:absolute;left:50%;transform:translateX(-50%);
+      font-size:18px;font-weight:800;color:rgba(232,228,255,.9);
+      letter-spacing:-.5px;text-decoration:none;cursor:pointer;
+    }
+    .ava{
+      width:32px;height:32px;border-radius:50%;
+      background:rgba(109,40,217,.65);
+      border:1px solid rgba(167,139,250,.3);
+      box-shadow:0 4px 16px rgba(76,29,149,.45),inset 0 1.5px 0 rgba(255,255,255,.2);
+      display:flex;align-items:center;justify-content:center;
+      font-size:12px;font-weight:700;color:white;
+      text-decoration:none;margin-left:auto;flex-shrink:0;
+      transition:transform .15s;
+    }
+    .ava:hover{transform:scale(1.08);}
+
+    /* ── HERO ── */
+    .hero{
+      position:relative;z-index:1;min-height:88vh;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      padding:80px 24px 60px;text-align:center;
+    }
+    @keyframes rise{from{opacity:0;transform:translateY(24px) scale(.97);}to{opacity:1;transform:translateY(0) scale(1);}}
+
+    .hero-eyebrow{
+      font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+      color:rgba(167,139,250,.52);margin-bottom:44px;
+      animation:rise .6s .1s cubic-bezier(.22,1,.36,1) both;
+    }
+    .hero-search{
+      width:100%;max-width:520px;
+      animation:rise .7s .2s cubic-bezier(.22,1,.36,1) both;
+    }
+
+    /* ── HERO GLASS — Real Liquid Glass ── */
+    .hero-glass{
+      position:relative;
+      background:rgba(255,255,255,.038);
+      backdrop-filter:url(#lg) blur(80px) saturate(240%) brightness(1.1);
+      -webkit-backdrop-filter:blur(80px) saturate(240%) brightness(1.1);
+      border-radius:26px;
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,.45),
+        inset 0 2px 0 rgba(255,255,255,.28),
+        inset 0 -2.5px 8px rgba(0,0,0,.3),
+        inset 1px 0 0 rgba(255,255,255,.1),
+        inset -1px 0 0 rgba(255,255,255,.06),
+        0 36px 90px rgba(0,0,0,.65),
+        0 8px 24px rgba(0,0,0,.35);
+      display:flex;align-items:center;gap:0;overflow:hidden;
+    }
+    .hero-glass::before{content:'';position:absolute;top:0;left:16%;right:16%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.32),transparent);z-index:2;}
+    /* Inner concave lens effect */
+    .hero-glass::after{
+      content:'';position:absolute;inset:0;border-radius:inherit;
+      background:
+        radial-gradient(ellipse 90% 40% at 50% 0%, rgba(255,255,255,.04), transparent 60%),
+        radial-gradient(ellipse 80% 40% at 50% 100%, rgba(0,0,0,.14), transparent 60%);
+      pointer-events:none;z-index:1;
+    }
+    .hero-glass:focus-within{
+      border-color:rgba(167,139,250,.28);
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,.45),
+        0 0 0 4px rgba(109,40,217,.14),
+        inset 0 2px 0 rgba(255,255,255,.3),
+        inset 0 -2.5px 8px rgba(0,0,0,.3),
+        0 40px 100px rgba(0,0,0,.7);
+    }
+    .hero-glass .icon{padding:0 16px 0 22px;position:relative;z-index:2;color:rgba(232,228,255,.22);}
+    .hero-glass .icon svg{width:17px;height:17px;display:block;}
+    .hero-glass input{
+      flex:1;padding:22px 22px 22px 0;background:transparent;border:none;
+      font-size:16px;font-family:inherit;color:var(--text);outline:none;
+      position:relative;z-index:2;letter-spacing:-.1px;
+    }
+    .hero-glass input::placeholder{color:rgba(232,228,255,.2);}
+
+    .scroll-cue{
+      position:absolute;bottom:28px;
+      display:flex;flex-direction:column;align-items:center;gap:8px;
+      color:rgba(232,228,255,.32);font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;
+      animation:rise .6s .8s both,bob 2.4s 1.8s ease-in-out infinite;
+    }
+    .scroll-cue svg{width:22px;height:22px;stroke-width:1.8;}
+    @keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(7px);}}
+
+    /* ── COMICS SECTION ── */
+    .section{position:relative;z-index:1;padding:0 18px 120px;max-width:1100px;margin:0 auto;}
+
+    /* Grid — flex wrap centered */
+    .grid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;}
+
+    /* ── COMIC CARD — Convex Liquid Glass ── */
+    .comic{
+      flex:0 0 148px;
+      display:block;text-decoration:none;color:inherit;
+      border-radius:20px;overflow:hidden;
+      position:relative;
+      background:rgba(255,255,255,.042);
+      backdrop-filter:url(#lg) blur(52px) saturate(200%) brightness(1.08);
+      -webkit-backdrop-filter:blur(52px) saturate(200%) brightness(1.08);
+      border:1px solid rgba(255,255,255,.09);
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,.42),
+        inset 0 2px 0 rgba(255,255,255,.22),
+        inset 0 -2px 6px rgba(0,0,0,.26),
+        inset 1px 0 0 rgba(255,255,255,.08),
+        inset -1px 0 0 rgba(255,255,255,.04),
+        0 10px 42px rgba(0,0,0,.5),
+        0 3px 10px rgba(0,0,0,.3);
+      --lx:50%;--ly:50%;--lo:0;
+      opacity:0;transform:translateY(32px) scale(.96);
+      transition:
+        opacity .65s cubic-bezier(.22,1,.36,1),
+        transform .65s cubic-bezier(.22,1,.36,1),
+        box-shadow .22s,border-color .22s;
+    }
+    /* Top specular — brighter convex rim */
+    .comic::before{
+      content:'';position:absolute;top:0;left:14%;right:14%;height:1px;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,.28),transparent);
+      z-index:3;
+    }
+    /* Inner lens gradient + per-card mouse light */
+    .comic::after{
+      content:'';position:absolute;inset:0;border-radius:inherit;
+      background:
+        radial-gradient(ellipse 80% 30% at 50% 0%, rgba(255,255,255,.052), transparent 55%),
+        radial-gradient(circle 170px at var(--lx) var(--ly), rgba(255,255,255,var(--lo)), transparent);
+      pointer-events:none;z-index:2;
+    }
+    .comic.visible{opacity:1;transform:translateY(0) scale(1);}
+    .comic:hover{
+      transform:translateY(-8px) scale(1.018) !important;
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,.42),
+        inset 0 2px 0 rgba(255,255,255,.26),
+        inset 0 -2px 6px rgba(0,0,0,.22),
+        0 28px 64px rgba(0,0,0,.6),
+        0 6px 18px rgba(0,0,0,.35);
+      border-color:rgba(255,255,255,.13);
+    }
+
+    /* Stagger delays */
+    .comic:nth-child(1){transition-delay:.04s}
+    .comic:nth-child(2){transition-delay:.09s}
+    .comic:nth-child(3){transition-delay:.14s}
+    .comic:nth-child(4){transition-delay:.19s}
+    .comic:nth-child(5){transition-delay:.24s}
+    .comic:nth-child(6){transition-delay:.29s}
+    .comic:nth-child(7){transition-delay:.07s}
+    .comic:nth-child(8){transition-delay:.12s}
+    .comic:nth-child(9){transition-delay:.17s}
+    .comic:nth-child(10){transition-delay:.22s}
+    .comic:nth-child(11){transition-delay:.27s}
+    .comic:nth-child(12){transition-delay:.32s}
+
+    /* Cover art */
+    .cover{width:100%;position:relative;overflow:hidden;}
+    .art{position:absolute;inset:0;}
+    .art::before,.art::after{content:'';position:absolute;border-radius:50%;}
+    .art::after{width:200%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);top:33%;left:-50%;transform:rotate(-13deg);border-radius:0;}
+    .h1{padding-bottom:142%;}
+    .h2{padding-bottom:122%;}
+    .h3{padding-bottom:158%;}
+
+    .a1{background:linear-gradient(158deg,#09051e 0%,#1e0a50 55%,#09143a 100%);}
+    .a1::before{width:160px;height:160px;background:rgba(139,92,246,.24);top:-40px;right:-30px;}
+    .a2{background:linear-gradient(158deg,#04101c 0%,#092840 55%,#061a2e 100%);}
+    .a2::before{width:190px;height:190px;background:rgba(14,165,233,.18);bottom:-50px;right:-50px;}
+    .a3{background:linear-gradient(158deg,#130516 0%,#32092c 55%,#150720 100%);}
+    .a3::before{width:145px;height:145px;background:rgba(232,72,153,.2);top:-28px;left:14px;}
+    .a4{background:linear-gradient(158deg,#080c1c 0%,#141c40 55%,#0a1228 100%);}
+    .a4::before{width:175px;height:175px;background:rgba(99,102,241,.2);top:-42px;right:-38px;}
+    .a5{background:linear-gradient(158deg,#0c0a1c 0%,#1a1240 55%,#100c2e 100%);}
+    .a5::before{width:150px;height:150px;background:rgba(167,139,250,.22);bottom:-32px;left:-28px;}
+    .a6{background:linear-gradient(158deg,#140c06 0%,#361a0c 55%,#1c1008 100%);}
+    .a6::before{width:165px;height:165px;background:rgba(251,146,60,.17);top:-38px;right:-28px;}
+    .a7{background:linear-gradient(158deg,#040e0c 0%,#0a2420 55%,#071610 100%);}
+    .a7::before{width:155px;height:155px;background:rgba(20,184,166,.18);bottom:-38px;right:-38px;}
+    .a8{background:linear-gradient(158deg,#0e0612 0%,#24102a 55%,#160a1c 100%);}
+    .a8::before{width:140px;height:140px;background:rgba(192,132,252,.22);top:-28px;left:8px;}
+    .a9{background:linear-gradient(158deg,#0e0e06 0%,#221e0c 55%,#161208 100%);}
+    .a9::before{width:155px;height:155px;background:rgba(234,179,8,.14);top:-32px;right:-22px;}
+    .a10{background:linear-gradient(158deg,#0c0606 0%,#240e0e 55%,#180808 100%);}
+    .a10::before{width:170px;height:170px;background:rgba(239,68,68,.16);bottom:-38px;right:-32px;}
+    .a11{background:linear-gradient(158deg,#060e06 0%,#0e1c0e 55%,#081008 100%);}
+    .a11::before{width:148px;height:148px;background:rgba(34,197,94,.17);top:-32px;left:4px;}
+    .a12{background:linear-gradient(158deg,#080614 0%,#100c28 55%,#080618 100%);}
+    .a12::before{width:160px;height:160px;background:rgba(103,232,249,.17);bottom:-30px;left:-22px;}
+
+    /* Card info */
+    .info{padding:10px 13px 13px;position:relative;z-index:3;}
+    .info h3{font-size:12px;font-weight:700;color:rgba(232,228,255,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;}
+    .card-desc{font-size:10px;color:rgba(232,228,255,.26);line-height:1.45;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+    .meta{display:flex;align-items:center;justify-content:flex-end;}
+    .rat{font-size:10px;color:rgba(167,139,250,.65);font-weight:600;}
+
+    .empty{display:none;text-align:center;padding:80px 20px;color:rgba(232,228,255,.18);font-size:14px;}
+
+    /* Loading state */
+    .grid-loading{
+      column-span:all;
+      display:flex;align-items:center;justify-content:center;gap:10px;
+      padding:80px 20px;
+      color:rgba(232,228,255,.25);font-size:13px;
+    }
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .gload-spinner{
+      width:20px;height:20px;border-radius:50%;flex-shrink:0;
+      border:2px solid rgba(167,139,250,.18);
+      border-top-color:rgba(167,139,250,.7);
+      animation:spin .75s linear infinite;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Real SVG liquid glass filter -->
+<svg class="svg-f" aria-hidden="true">
+  <defs>
+    <filter id="lg" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feTurbulence type="turbulence" baseFrequency="0.009 0.006" numOctaves="4" seed="5" result="t">
+        <animate attributeName="baseFrequency" values="0.009 0.006;0.013 0.009;0.010 0.007;0.009 0.006" dur="18s" repeatCount="indefinite"/>
+        <animate attributeName="seed" values="5;8;11;5" dur="26s" repeatCount="indefinite"/>
+      </feTurbulence>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0  0 0 0 0 1" in="t" result="dm"/>
+      <feDisplacementMap in="SourceGraphic" in2="dm" scale="18" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
+
+<div class="scene">
+  <div class="orb o1"></div>
+  <div class="orb o2"></div>
+  <div class="orb o3"></div>
+</div>
+
+<div class="mouse-glow" id="mg"></div>
+
+<header>
+  <a class="logo" href="/">Policom</a>
+  <a class="ava" href="/profile">А</a>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <p class="hero-eyebrow">Мир комиксов</p>
+
+  <div class="hero-search">
+    <div class="hero-glass">
+      <span class="icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+      </span>
+      <input type="text" id="q" placeholder="Найти комикс…" oninput="filter()" autocomplete="off"/>
+    </div>
+  </div>
+
+  <div class="scroll-cue">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+    Листай
+  </div>
+</section>
+
+<!-- COMICS -->
+<section class="section">
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty">Ничего не найдено</div>
+</section>
+
+<script>
+const API = '';
+let searchTimer = null;
+
+/* ── MOUSE WATER GLOW ── */
+document.addEventListener('mousemove', e => {
+  document.documentElement.style.setProperty('--cx', e.clientX + 'px');
+  document.documentElement.style.setProperty('--cy', e.clientY + 'px');
+});
+
+/* ── PER-CARD MOUSE HIGHLIGHT ── */
+function bindCards() {
+  document.querySelectorAll('.comic').forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const r = card.getBoundingClientRect();
+      card.style.setProperty('--lx', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
+      card.style.setProperty('--ly', ((e.clientY - r.top)  / r.height * 100).toFixed(1) + '%');
+      card.style.setProperty('--lo', '0.10');
+    });
+    card.addEventListener('mouseleave', () => card.style.setProperty('--lo', '0'));
+  });
+}
+
+/* ── SCROLL REVEAL ── */
+const io = new IntersectionObserver(entries => {
+  const all = [...document.querySelectorAll('.comic')];
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    const delay = (all.indexOf(e.target) % 6) * 65;
+    setTimeout(() => e.target.classList.add('visible'), delay);
+    io.unobserve(e.target);
+  });
+}, { threshold: 0.06, rootMargin: '0px 0px -30px 0px' });
+
+function observeAll() {
+  document.querySelectorAll('.comic:not(.visible)').forEach(c => io.observe(c));
+}
+
+/* ── RENDER RESULTS ── */
+function renderResults(comics) {
+  const grid  = document.getElementById('grid');
+  const empty = document.getElementById('empty');
+  if (!comics || comics.length === 0) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    empty.textContent = 'Ничего не найдено';
+    return;
+  }
+  empty.style.display = 'none';
+  grid.innerHTML = comics.map((c, i) => `
+    <a class="comic visible" href="/reader?id=${c.ID}"
+       style="transition-delay:${(i % 6) * 55}ms">
+      <div class="cover" style="padding-bottom:60%;position:relative;">
+        <img src="${c.URL}" alt="${c.Title || `xkcd #${c.ID}`}"
+          style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;border-radius:inherit;"
+          loading="lazy"
+          onerror="this.parentElement.innerHTML='<div class=\'art a${(i%12)+1}\'></div>'"/>
+      </div>
+      <div class="info">
+        <h3>${c.Title || `xkcd #${c.ID}`}</h3>
+        ${c.ImgDescription ? `<p class="card-desc">${c.ImgDescription}</p>` : ''}
+        <div class="meta"><span class="rat">#${c.ID}</span></div>
+      </div>
+    </a>`).join('');
+  bindCards();
+  observeAll();
+}
+
+/* ── LOAD COMICS FROM API ── */
+async function loadComics(phrase) {
+  const grid  = document.getElementById('grid');
+  const empty = document.getElementById('empty');
+
+  grid.innerHTML = '<div class="grid-loading"><div class="gload-spinner"></div>Загрузка комиксов…</div>';
+  empty.style.display = 'none';
+
+  try {
+    const url = `${API}/api/isearch?phrase=${encodeURIComponent(phrase)}&limit=${phrase ? 12 : 10}`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('server ' + r.status);
+    const d = await r.json();
+    renderResults(d.comics || []);
+  } catch(err) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    empty.textContent = 'Не удалось загрузить комиксы. Проверьте соединение с сервером.';
+  }
+}
+
+/* ── SEARCH HANDLER ── */
+function filter() {
+  const q = document.getElementById('q').value.trim();
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => loadComics(q), q ? 320 : 0);
+}
+
+/* ── INIT ── */
+document.addEventListener('DOMContentLoaded', () => loadComics(''));
+</script>
+</body>
+</html>

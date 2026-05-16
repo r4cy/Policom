@@ -1,0 +1,406 @@
+basePath: /
+definitions:
+  core.Comics:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      imgDescription:
+        type: string
+      title:
+        type: string
+      url:
+        type: string
+    type: object
+  core.UpdateStatus:
+    enum:
+    - unknown
+    - idle
+    - running
+    type: string
+    x-enum-varnames:
+    - StatusUpdateUnknown
+    - StatusUpdateIdle
+    - StatusUpdateRunning
+  rest.LoginReply:
+    properties:
+      token:
+        type: string
+    type: object
+  rest.LoginRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  rest.PingReply:
+    properties:
+      replies:
+        additionalProperties:
+          type: string
+        type: object
+    type: object
+  rest.ProfileReply:
+    properties:
+      comics:
+        items:
+          $ref: '#/definitions/core.Comics'
+        type: array
+      email:
+        type: string
+      role:
+        type: string
+      total:
+        example: 0
+        minimum: 0
+        type: integer
+      username:
+        type: string
+    type: object
+  rest.RegisterRequest:
+    properties:
+      email:
+        type: string
+      password1:
+        type: string
+      password2:
+        type: string
+      username:
+        type: string
+    type: object
+  rest.SearchReply:
+    properties:
+      comics:
+        items:
+          $ref: '#/definitions/core.Comics'
+        type: array
+      total:
+        example: 0
+        minimum: 0
+        type: integer
+    type: object
+  rest.StatsReply:
+    properties:
+      comics_fetched:
+        example: 3190
+        minimum: 0
+        type: integer
+      comics_total:
+        example: 3200
+        minimum: 0
+        type: integer
+      words_total:
+        example: 10000
+        minimum: 0
+        type: integer
+      words_unique:
+        example: 2555
+        minimum: 0
+        type: integer
+    type: object
+  rest.UpdateStatusReply:
+    properties:
+      status:
+        allOf:
+        - $ref: '#/definitions/core.UpdateStatus'
+        example: running
+    type: object
+host: localhost:28080
+info:
+  contact:
+    email: r.garanin2014@yandex.ru
+    name: Roman
+  description: Микросервис поиска комиксов XKCD
+  license:
+    name: MIT
+  termsOfService: http://swagger.io/terms/
+  title: Search comics API
+  version: "1.0"
+paths:
+  /api/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Создает нового пользователя с ролью user. Пароли password1 и password2
+        должны совпадать.
+      parameters:
+      - description: Данные для регистрации
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/rest.RegisterRequest'
+      produces:
+      - text/plain
+      responses:
+        "201":
+          description: Пользователь успешно создан
+        "400":
+          description: Некорректный JSON или пароли не совпадают
+        "500":
+          description: Ошибка регистрации пользователя
+      summary: Регистрация пользователя
+      tags:
+      - auth
+  /api/comics/{id}:
+    get:
+      description: Возвращает данные одного комикса по его идентификатору.
+      parameters:
+      - description: ID комикса
+        in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Комикс найден
+          schema:
+            $ref: '#/definitions/core.Comics'
+        "400":
+          description: Некорректный ID
+        "404":
+          description: Комикс не найден
+        "500":
+          description: Ошибка сервиса поиска
+      summary: Получение комикса по ID
+      tags:
+      - comics
+  /api/db:
+    delete:
+      description: 'Удаляет все данные из таблицы. ВНИМАНИЕ: все данные будут безвозвратно
+        удалены.'
+      responses:
+        "200":
+          description: Успешное удаление данных
+        "500":
+          description: Ошибка на стороне сервера
+      summary: Удаление данных из БД.
+      tags:
+      - database
+  /api/db/stats:
+    get:
+      description: 'Возвращает агрегированную статистику по комиксам в БД: общее кол-во
+        слов, уникальных слов, комиксов загруженных при последнем обновлении и всего
+        в базе.'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/rest.StatsReply'
+        "500":
+          description: Ошибка на стороне сервера
+      summary: Статистика из базы данных.
+      tags:
+      - stats
+  /api/db/status:
+    get:
+      description: 'Возвращает текущий статус процесса обновления БД: idle или running.'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/rest.UpdateStatusReply'
+        "500":
+          description: Ошибка на стороне сервера
+      summary: Статус процесса обновления.
+      tags:
+      - status
+  /api/isearch:
+    get:
+      description: Ищет комиксы в in-memory индексе по переданной фразе. Быстрее чем
+        /api/search, результаты из памяти.
+      parameters:
+      - description: Поисковая фраза
+        in: query
+        name: phrase
+        required: true
+        type: string
+      - description: Макс. кол-во результатов
+        in: query
+        minimum: 0
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/rest.SearchReply'
+        "400":
+          description: Неверные параметры запроса
+        "500":
+          description: Ошибка на стороне сервера
+      summary: Поиск комиксов по индексу (in-memory)
+      tags:
+      - search
+  /api/login:
+    post:
+      consumes:
+      - application/json
+      description: Принимает имя и пароль, возвращает JWT токен.
+      parameters:
+      - description: Данные для входа
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/rest.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JWT токен
+          schema:
+            $ref: '#/definitions/rest.LoginReply'
+        "400":
+          description: Неверные параметры запроса
+        "401":
+          description: Неверный логин или пароль
+        "500":
+          description: Ошибка на стороне сервера
+      summary: Авторизация пользователя.
+      tags:
+      - auth
+  /api/me:
+    get:
+      description: Возвращает данные текущего авторизованного пользователя и список
+        сохраненных комиксов.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Профиль пользователя
+          schema:
+            $ref: '#/definitions/rest.ProfileReply'
+        "401":
+          description: Пользователь не авторизован
+        "500":
+          description: Ошибка получения профиля
+      security:
+      - BearerAuth: []
+      summary: Профиль пользователя
+      tags:
+      - profile
+  /api/me/saved/{id}:
+    delete:
+      description: Удаляет комикс из избранного текущего авторизованного пользователя.
+        Если комикс уже не был сохранен, операция все равно завершается успешно.
+      parameters:
+      - description: ID комикса
+        in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: Комикс удален из избранного
+        "400":
+          description: Некорректный ID
+        "401":
+          description: Пользователь не авторизован
+        "500":
+          description: Ошибка удаления комикса из избранного
+      security:
+      - BearerAuth: []
+      summary: Удаление комикса из избранного
+      tags:
+      - profile
+    post:
+      description: Добавляет комикс в избранное текущего авторизованного пользователя.
+        Повторное сохранение того же комикса не создает дубликат.
+      parameters:
+      - description: ID комикса
+        in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: Комикс сохранен
+        "400":
+          description: Некорректный ID
+        "401":
+          description: Пользователь не авторизован
+        "500":
+          description: Ошибка сохранения комикса
+      security:
+      - BearerAuth: []
+      summary: Сохранение комикса
+      tags:
+      - profile
+  /api/ping:
+    get:
+      description: Опрашивает все зарегистрированные микросервисы и возвращает их
+        статус. Используется для health-check мониторинга.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/rest.PingReply'
+        "400":
+          description: Неверные параметры запроса
+        "500":
+          description: Внутренняя ошибка сервера
+      summary: Проверка сервисов.
+      tags:
+      - ping
+  /api/search:
+    get:
+      description: Ищет комиксы в базе данных по переданной фразе. Результаты отсортированы
+        по релевантности.
+      parameters:
+      - description: Поисковая фраза
+        in: query
+        name: phrase
+        required: true
+        type: string
+      - description: Макс. кол-во результатов
+        in: query
+        minimum: 0
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/rest.SearchReply'
+        "400":
+          description: Неверные параметры запроса
+        "500":
+          description: Ошибка на стороне сервера
+      summary: Поиск комиксов по ключевым словам.
+      tags:
+      - search
+  /api/update:
+    post:
+      description: Загружает новые комиксы с XKCD и обновляет поисковый индекс. Если
+        обновление уже запущено - возвращает 202.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Обновление запущено
+        "202":
+          description: Обновление БД
+        "500":
+          description: Ошибка, сервер в данный момент обновляет БД
+      summary: Обновление комиксов в БД и Индексе.
+      tags:
+      - update
+swagger: "2.0"

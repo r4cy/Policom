@@ -1,0 +1,7 @@
+log_level: DEBUG
+search_server:
+  address: localhost:83
+  index_ttl: 24h
+words_address: localhost:82
+broker_address: localhost:4222
+db_address: localhost:1234

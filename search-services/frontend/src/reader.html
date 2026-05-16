@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Читать — Policom</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",sans-serif;
+      background:#06050e;min-height:100vh;color:rgba(232,228,255,.82);overflow-x:hidden;
+    }
+    body.checking .topbar,
+    body.checking .layout,
+    body.checking .bottom,
+    body.checking .toast{visibility:hidden;}
+
+    /* ── ORBS ── */
+    .scene{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+    .orb{position:absolute;border-radius:50%;will-change:transform;animation:float linear infinite;}
+    .o1{width:800px;height:800px;background:radial-gradient(circle at 38% 38%,rgba(76,29,149,.55) 0%,transparent 62%);top:-280px;left:-240px;animation-duration:34s;filter:blur(70px);}
+    .o2{width:600px;height:600px;background:radial-gradient(circle at 60% 60%,rgba(14,78,153,.45) 0%,transparent 62%);bottom:-200px;right:-180px;animation-duration:27s;animation-delay:-10s;filter:blur(80px);}
+    @keyframes float{0%,100%{transform:translate(0,0) scale(1);}25%{transform:translate(28px,-22px) scale(1.03);}50%{transform:translate(-20px,32px) scale(0.97);}75%{transform:translate(22px,12px) scale(1.02);}}
+
+    @keyframes fadeDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes fadeUp  {from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+    /* ── TOPBAR ── */
+    .topbar{
+      position:fixed;top:0;left:0;right:0;z-index:200;height:54px;
+      display:flex;align-items:center;padding:0 18px;gap:12px;
+      background:rgba(6,5,14,.65);
+      backdrop-filter:blur(52px) saturate(200%);
+      -webkit-backdrop-filter:blur(52px) saturate(200%);
+      border-bottom:1px solid rgba(255,255,255,.06);
+      animation:fadeDown .35s ease both;
+    }
+    .topbar::after{content:'';position:absolute;bottom:-1px;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(167,139,250,.15),transparent);}
+    .back{display:flex;align-items:center;gap:2px;font-size:14px;font-weight:500;color:rgba(167,139,250,.8);text-decoration:none;flex-shrink:0;transition:opacity .15s;}
+    .back:hover{opacity:.55;}
+    .back svg{width:19px;height:19px;}
+    .title-wrap{flex:1;text-align:center;}
+    .title-wrap h2{font-size:14px;font-weight:700;color:rgba(232,228,255,.82);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .title-wrap p{font-size:11px;color:rgba(232,228,255,.28);margin-top:1px;}
+
+    /* Glass icon button — reference style */
+    .tbtn{
+      width:34px;height:34px;flex-shrink:0;
+      background:linear-gradient(175deg,rgba(255,255,255,.09) 0%,rgba(255,255,255,.03) 100%);
+      border:1px solid rgba(255,255,255,.09);
+      border-bottom-color:rgba(0,0,0,.15);
+      border-radius:10px;
+      color:rgba(232,228,255,.5);
+      display:flex;align-items:center;justify-content:center;
+      cursor:pointer;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.14);
+      transition:background .15s,color .15s;
+    }
+    .tbtn:hover{background:linear-gradient(175deg,rgba(255,255,255,.13) 0%,rgba(255,255,255,.06) 100%);color:rgba(232,228,255,.88);}
+    .tbtn svg{width:15px;height:15px;}
+    .tbtn.active{border-color:rgba(167,139,250,.3);color:rgba(167,139,250,.9);background:linear-gradient(175deg,rgba(139,92,246,.18) 0%,rgba(109,40,217,.1) 100%);}
+    .tbtn.busy{opacity:.55;pointer-events:none;}
+
+    .toast{
+      position:fixed;top:66px;right:18px;z-index:300;
+      max-width:260px;padding:10px 12px;border-radius:12px;
+      background:rgba(6,5,14,.78);
+      border:1px solid rgba(255,255,255,.09);
+      box-shadow:0 12px 32px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.12);
+      color:rgba(232,228,255,.82);
+      font-size:12px;line-height:1.45;
+      opacity:0;transform:translateY(-8px);
+      pointer-events:none;
+      transition:opacity .2s,transform .2s;
+    }
+    .toast.show{opacity:1;transform:translateY(0);}
+    .toast.ok{color:rgba(52,211,153,.9);border-color:rgba(52,211,153,.22);}
+    .toast.err{color:rgba(248,113,113,.9);border-color:rgba(248,113,113,.22);}
+
+    /* ── LAYOUT ── */
+    .layout{display:flex;padding-top:54px;min-height:100vh;}
+
+    /* ── SIDEBAR ── */
+    .sidebar{
+      position:fixed;top:54px;bottom:0;left:0;width:236px;
+      background:rgba(6,5,14,.7);
+      backdrop-filter:blur(52px) saturate(180%);
+      -webkit-backdrop-filter:blur(52px) saturate(180%);
+      border-right:1px solid rgba(255,255,255,.06);
+      box-shadow:inset -1px 0 0 rgba(255,255,255,.04),1px 0 24px rgba(0,0,0,.4);
+      display:flex;flex-direction:column;
+      transition:transform .3s cubic-bezier(.4,0,.2,1);
+      z-index:100;
+      animation:fadeUp .4s ease both;
+    }
+    .sidebar.hidden{transform:translateX(-100%);animation:none;}
+
+    .sb-top{padding:18px 16px 14px;border-bottom:1px solid rgba(255,255,255,.055);flex-shrink:0;}
+    .sb-label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(232,228,255,.22);margin-bottom:2px;}
+    .sb-count{font-size:11px;color:rgba(232,228,255,.28);margin-top:2px;}
+
+    .sb-list{flex:1;overflow-y:auto;padding:5px 0;}
+    .sb-list::-webkit-scrollbar{width:2px;}
+    .sb-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px;}
+
+    .sb-item{
+      display:flex;align-items:center;gap:10px;padding:8px 16px;
+      border:none;background:transparent;width:100%;
+      text-align:left;font-family:inherit;cursor:pointer;
+      transition:background .15s;
+    }
+    .sb-item:hover{background:rgba(255,255,255,.03);}
+    .sb-item.on{background:rgba(139,92,246,.08);}
+    .sb-item.on .si-num{color:rgba(167,139,250,.9);}
+    .sb-item.on .si-title{color:rgba(232,228,255,.8);}
+    .si-num{font-size:10px;font-weight:700;color:rgba(232,228,255,.22);width:32px;flex-shrink:0;}
+    .si-title{font-size:12px;font-weight:500;color:rgba(232,228,255,.42);flex:1;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .si-dot{width:4px;height:4px;border-radius:50%;background:rgba(167,139,250,.9);flex-shrink:0;box-shadow:0 0 6px rgba(139,92,246,.9);}
+
+    /* ── READER ── */
+    .reader{
+      flex:1;margin-left:236px;
+      display:flex;flex-direction:column;align-items:center;
+      padding:44px 28px 96px;
+      position:relative;z-index:1;
+      transition:margin-left .3s cubic-bezier(.4,0,.2,1);
+    }
+    .reader.wide{margin-left:0;}
+
+    /* ── COMIC DISPLAY ── */
+    .comic-wrap{width:100%;max-width:1080px;animation:fadeUp .5s .06s ease both;}
+
+    .comic-meta{display:flex;align-items:baseline;gap:10px;margin-bottom:18px;}
+    .comic-num{font-size:11px;font-weight:700;color:rgba(167,139,250,.55);letter-spacing:.06em;text-transform:uppercase;}
+    .comic-title{font-size:20px;font-weight:800;color:rgba(232,228,255,.9);letter-spacing:-.5px;}
+
+    /* ── BODY: image left + description right ── */
+    .comic-body{display:flex;gap:16px;align-items:flex-start;margin-bottom:12px;}
+
+    /* Glass frame — reference style */
+    .comic-frame{
+      flex:1;min-width:0;
+      background:linear-gradient(175deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,.025) 100%);
+      backdrop-filter:blur(48px) saturate(180%);
+      -webkit-backdrop-filter:blur(48px) saturate(180%);
+      border:1px solid rgba(255,255,255,.09);
+      border-bottom-color:rgba(255,255,255,.04);
+      border-radius:24px;
+      box-shadow:
+        inset 0 1.5px 0 rgba(255,255,255,.22),
+        inset 0 -1px 0 rgba(0,0,0,.15),
+        0 0 0 1px rgba(0,0,0,.28),
+        0 24px 64px rgba(0,0,0,.55);
+      position:relative;overflow:hidden;
+      padding:24px;
+    }
+    .comic-frame::before{
+      content:'';position:absolute;top:0;left:20%;right:20%;height:1px;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);
+    }
+
+    /* xkcd strip container — white bg like the real site */
+    .strip-container{
+      width:100%;background:#fff;border-radius:10px;
+      display:flex;align-items:center;justify-content:center;
+      min-height:200px;overflow:hidden;
+      box-shadow:0 4px 20px rgba(0,0,0,.4);position:relative;
+    }
+    .strip-container img{width:100%;height:auto;display:block;border-radius:10px;}
+    .strip-loader{
+      position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+      font-size:13px;color:rgba(0,0,0,.3);
+    }
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .spinner{width:24px;height:24px;border:2px solid rgba(0,0,0,.1);border-top-color:rgba(139,92,246,.6);border-radius:50%;animation:spin .8s linear infinite;margin-right:10px;}
+
+    /* Description panel — right of image */
+    .comic-desc-panel{
+      width:260px;flex-shrink:0;
+      background:linear-gradient(175deg,rgba(255,255,255,.06) 0%,rgba(255,255,255,.02) 100%);
+      border:1px solid rgba(255,255,255,.08);
+      border-bottom-color:rgba(255,255,255,.04);
+      border-radius:20px;
+      box-shadow:inset 0 1.5px 0 rgba(255,255,255,.15),0 0 0 1px rgba(0,0,0,.2),0 12px 32px rgba(0,0,0,.35);
+      padding:18px 16px;
+      max-height:520px;overflow-y:auto;
+      position:relative;
+    }
+    .comic-desc-panel::before{
+      content:'';position:absolute;top:0;left:18%;right:18%;height:1px;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);
+    }
+    .comic-desc-panel::-webkit-scrollbar{width:2px;}
+    .comic-desc-panel::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px;}
+    .desc-label{
+      font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+      color:rgba(232,228,255,.2);margin-bottom:12px;
+    }
+    .desc-text{
+      font-size:12px;color:rgba(232,228,255,.45);line-height:1.82;white-space:pre-line;
+    }
+    .desc-empty{
+      font-size:12px;color:rgba(232,228,255,.15);font-style:italic;line-height:1.6;
+    }
+
+    /* Alt text (ImgDescription) — below the body */
+    .comic-alt{
+      padding:11px 15px;
+      background:rgba(255,255,255,.02);
+      border:1px solid rgba(255,255,255,.055);
+      border-radius:12px;
+      font-size:11px;color:rgba(232,228,255,.28);font-style:italic;line-height:1.55;
+    }
+    .comic-alt:empty{display:none;}
+
+    /* Responsive: stack on narrow screens */
+    @media(max-width:700px){
+      .comic-body{flex-direction:column;}
+      .comic-desc-panel{width:100%;max-height:260px;}
+    }
+
+    /* ── BOTTOM NAV ── */
+    .bottom{
+      position:fixed;bottom:0;left:236px;right:0;height:62px;
+      display:flex;align-items:center;justify-content:center;gap:14px;
+      background:rgba(6,5,14,.75);
+      backdrop-filter:blur(48px) saturate(180%);
+      -webkit-backdrop-filter:blur(48px) saturate(180%);
+      border-top:1px solid rgba(255,255,255,.06);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+      transition:left .3s cubic-bezier(.4,0,.2,1);z-index:100;
+    }
+    .bottom.wide{left:0;}
+
+    /* Glass pill nav button — reference style */
+    .nbtn{
+      display:flex;align-items:center;gap:7px;
+      padding:9px 20px;
+      background:linear-gradient(175deg,rgba(255,255,255,.08) 0%,rgba(255,255,255,.03) 100%);
+      border:1px solid rgba(255,255,255,.09);
+      border-bottom-color:rgba(0,0,0,.15);
+      border-radius:980px;
+      color:rgba(232,228,255,.62);
+      font-size:13px;font-weight:500;font-family:inherit;
+      cursor:pointer;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 1px 3px rgba(0,0,0,.25);
+      transition:background .15s,color .15s;
+    }
+    .nbtn:hover{background:linear-gradient(175deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,.06) 100%);color:rgba(232,228,255,.9);}
+    .nbtn:disabled{opacity:.28;cursor:default;pointer-events:none;}
+    .nbtn svg{width:14px;height:14px;}
+    .ind{font-size:11px;color:rgba(232,228,255,.22);min-width:72px;text-align:center;letter-spacing:.04em;}
+  </style>
+</head>
+<body class="checking">
+
+<div class="scene">
+  <div class="orb o1"></div>
+  <div class="orb o2"></div>
+</div>
+
+<div class="topbar">
+  <a class="back" href="/">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+    Назад
+  </a>
+  <div class="title-wrap">
+    <h2 id="hTitle">Загрузка…</h2>
+    <p id="hNum"></p>
+  </div>
+  <button class="tbtn active" id="sbBtn" onclick="toggleSb()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="14" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
+  </button>
+  <button class="tbtn" id="bkBtn" onclick="toggleBookmark()" title="Закладка">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+  </button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="layout">
+  <aside class="sidebar" id="sb">
+    <div class="sb-top">
+      <p class="sb-label">xkcd Comics</p>
+      <p class="sb-count" id="sbCount">Загрузка…</p>
+    </div>
+    <div class="sb-list" id="sbList">
+      <div style="padding:16px;font-size:13px;color:rgba(232,228,255,.3);">Загрузка…</div>
+    </div>
+  </aside>
+
+  <div class="reader" id="reader">
+    <div class="comic-wrap">
+      <div class="comic-meta">
+        <span class="comic-num" id="cNum">xkcd</span>
+        <span class="comic-title" id="cTitle">Загрузка…</span>
+      </div>
+
+      <div class="comic-body">
+        <!-- Left: image -->
+        <div class="comic-frame">
+          <div class="strip-container" id="stripContainer">
+            <div class="strip-loader" id="loader">
+              <div class="spinner"></div> Загружаем комикс…
+            </div>
+            <img id="comicImg" src="" alt="" style="display:none;" onload="imgLoaded()" onerror="imgError()"/>
+          </div>
+        </div>
+
+        <!-- Right: description (transcript) -->
+        <div class="comic-desc-panel">
+          <p class="desc-label">Описание</p>
+          <div id="descText"><p class="desc-empty">Нет описания</p></div>
+        </div>
+      </div>
+
+      <!-- Below: alt / img_description -->
+      <p class="comic-alt" id="altText"></p>
+    </div>
+  </div>
+</div>
+
+<div class="bottom" id="bottom">
+  <button class="nbtn" id="btnPrev" onclick="navigate(-1)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+    Назад
+  </button>
+  <span class="ind" id="ind"></span>
+  <button class="nbtn" id="btnNext" onclick="navigate(1)">
+    Вперёд
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+  </button>
+</div>
+
+<script>
+/* ── API ── */
+const API   = '';
+const jwt   = localStorage.getItem('jwt') || '';
+const authH = jwt ? { 'Authorization': `Bearer ${jwt}` } : {};
+
+/* ── URL PARAMS ── */
+const params = new URLSearchParams(location.search);
+let curId  = parseInt(params.get('id')) || 1;
+let curUrl = params.get('url') || '';
+let total  = 3000;
+let sbOpen = true;
+let sidebarComics = [];
+let savedIds = new Set();
+let bookmarkBusy = false;
+
+function comicId(c) {
+  return Number(c?.ID ?? c?.id ?? c?.Id);
+}
+
+function showToast(text, type = '') {
+  const toast = document.getElementById('toast');
+  toast.textContent = text;
+  toast.className = `toast show ${type}`.trim();
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+/* ── SAVED IDS from API ── */
+async function initSavedIds() {
+  if (!jwt) return;
+  try {
+    const r = await fetch(`${API}/api/me`, { headers: authH });
+    if (r.status === 401) {
+      localStorage.removeItem('jwt');
+      return;
+    }
+    if (r.ok) {
+      const d = await r.json();
+      savedIds = new Set((d.comics || []).map(comicId).filter(Number.isFinite));
+    }
+  } catch {
+    showToast('Не удалось проверить закладки', 'err');
+  }
+}
+
+function updateBookmarkBtn() {
+  document.getElementById('bkBtn').classList.toggle('active', savedIds.has(curId));
+}
+function initBookmark() { updateBookmarkBtn(); }
+
+async function toggleBookmark() {
+  if (!jwt) {
+    showToast('Войдите, чтобы сохранять комиксы', 'err');
+    setTimeout(() => { location.href = '/login'; }, 700);
+    return;
+  }
+  if (bookmarkBusy) return;
+  const isSaved = savedIds.has(curId);
+  const btn = document.getElementById('bkBtn');
+  bookmarkBusy = true;
+  btn.classList.add('busy');
+  try {
+    const method = isSaved ? 'DELETE' : 'POST';
+    const r = await fetch(`${API}/api/me/saved/${curId}`, { method, headers: authH });
+    if (r.ok || r.status === 204) {
+      if (isSaved) savedIds.delete(curId); else savedIds.add(curId);
+      updateBookmarkBtn();
+      showToast(isSaved ? 'Удалено из избранного' : 'Добавлено в избранное', 'ok');
+    } else if (r.status === 401) {
+      localStorage.removeItem('jwt');
+      showToast('Сессия истекла. Войдите снова', 'err');
+      setTimeout(() => { location.href = '/login'; }, 900);
+    } else if (r.status >= 500) {
+      localStorage.removeItem('jwt');
+      showToast('Сессия устарела. Войдите снова', 'err');
+      setTimeout(() => { location.href = '/login'; }, 900);
+    } else {
+      const msg = (await r.text()).trim();
+      throw new Error(msg || `Ошибка ${r.status}`);
+    }
+  } catch (err) {
+    showToast(err.message || 'Не удалось изменить закладку', 'err');
+  } finally {
+    bookmarkBusy = false;
+    btn.classList.remove('busy');
+  }
+}
+
+/* ── HISTORY ── */
+function saveHistory(id, title, imgUrl, description) {
+  let hist = JSON.parse(localStorage.getItem('history') || '[]');
+  hist = hist.filter(h => h.id !== id);
+  hist.unshift({ id, title, url: imgUrl, description: description || '' });
+  if (hist.length > 30) hist = hist.slice(0, 30);
+  localStorage.setItem('history', JSON.stringify(hist));
+}
+
+/* ── IMG EVENTS ── */
+function imgLoaded() {
+  document.getElementById('loader').style.display = 'none';
+  document.getElementById('comicImg').style.display = 'block';
+}
+function imgError() {
+  document.getElementById('loader').innerHTML = '<span style="color:rgba(232,228,255,.3)">Не удалось загрузить изображение</span>';
+}
+
+/* ── DISPLAY COMIC ── */
+function displayComic(id, imgUrl, title, alt, description) {
+  curId  = id;
+  curUrl = imgUrl;
+  document.getElementById('hTitle').textContent  = title || `#${id}`;
+  document.getElementById('hNum').textContent    = `xkcd #${id}`;
+  document.getElementById('cNum').textContent    = `xkcd #${id}`;
+  document.getElementById('cTitle').textContent  = title || `Comic #${id}`;
+  document.getElementById('altText').textContent = alt || '';
+  document.getElementById('ind').textContent     = `#${id}`;
+
+  const dt   = document.getElementById('descText');
+  const desc = (description || '').trim();
+  dt.innerHTML = desc
+    ? `<span class="desc-text">${desc.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</span>`
+    : `<p class="desc-empty">Нет описания</p>`;
+
+  const img = document.getElementById('comicImg');
+  const ldr = document.getElementById('loader');
+  img.style.display = 'none';
+  ldr.innerHTML = '<div class="spinner"></div> Загружаем…';
+  ldr.style.display = 'flex';
+  img.src = imgUrl;
+
+  document.querySelectorAll('.sb-item').forEach(el => {
+    el.classList.toggle('on', parseInt(el.dataset.id) === id);
+    const dot = el.querySelector('.si-dot');
+    if (parseInt(el.dataset.id) === id) {
+      if (!dot) el.insertAdjacentHTML('beforeend','<span class="si-dot"></span>');
+    } else { if (dot) dot.remove(); }
+  });
+
+  document.getElementById('btnPrev').disabled = id <= 1;
+  document.getElementById('btnNext').disabled = id >= total;
+  window.scrollTo({ top:0, behavior:'smooth' });
+  initBookmark();
+  saveHistory(id, title, imgUrl, description);
+}
+
+/* ── FETCH COMIC from backend ── */
+async function fetchComic(id) {
+  try {
+    const r = await fetch(`${API}/api/comics/${id}`);
+    if (!r.ok) throw new Error('not found');
+    return await r.json();
+  } catch { return null; }
+}
+
+function goNotFound() {
+  location.replace('/404');
+}
+
+/* ── NAVIGATE ── */
+async function navigate(dir) {
+  const newId = curId + dir;
+  if (newId < 1 || newId > total) return;
+
+  const found = sidebarComics.find(c => c.ID === newId);
+  if (found) {
+    displayComic(found.ID, found.URL, found.Title, found.ImgDescription || '', found.Description || '');
+    return;
+  }
+
+  const data = await fetchComic(newId);
+  if (data) {
+    displayComic(data.ID, data.URL, data.Title, data.ImgDescription || '', data.Description || '');
+    addToSidebar([data]);
+  }
+}
+
+/* ── SIDEBAR ── */
+function addToSidebar(comics) {
+  comics.forEach(c => {
+    if (sidebarComics.find(x => x.ID === c.ID)) return;
+    sidebarComics.push(c);
+  });
+  sidebarComics.sort((a,b) => b.ID - a.ID);
+  renderSidebar();
+}
+
+function renderSidebar() {
+  const list = document.getElementById('sbList');
+  list.innerHTML = sidebarComics.map(c => `
+    <button class="sb-item${c.ID === curId ? ' on' : ''}" data-id="${c.ID}" onclick="goToComic(${c.ID})">
+      <span class="si-num">#${c.ID}</span>
+      <span class="si-title">${c.Title || `Comic #${c.ID}`}</span>
+      ${c.ID === curId ? '<span class="si-dot"></span>' : ''}
+    </button>`).join('');
+  document.getElementById('sbCount').textContent = `${sidebarComics.length} комиксов`;
+}
+
+function goToComic(id) {
+  const c = sidebarComics.find(x => x.ID === id);
+  if (c) displayComic(c.ID, c.URL, c.Title, c.ImgDescription || '', c.Description || '');
+}
+
+/* ── TOGGLE SIDEBAR ── */
+function toggleSb() {
+  sbOpen = !sbOpen;
+  document.getElementById('sb').classList.toggle('hidden', !sbOpen);
+  document.getElementById('reader').classList.toggle('wide', !sbOpen);
+  document.getElementById('bottom').classList.toggle('wide', !sbOpen);
+  document.getElementById('sbBtn').classList.toggle('active', sbOpen);
+}
+
+/* ── KEYBOARD ── */
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') navigate(1);
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   navigate(-1);
+});
+
+/* ── INIT ── */
+(async () => {
+  if (!Number.isFinite(curId) || curId < 1 || curId > total) {
+    goNotFound();
+    return;
+  }
+
+  const data = await fetchComic(curId);
+  if (data) {
+    displayComic(data.ID, data.URL, data.Title, data.ImgDescription || '', data.Description || '');
+    sidebarComics.push(data);
+    document.body.classList.remove('checking');
+  } else if (curUrl) {
+    const title = params.get('title') || `Comic #${curId}`;
+    displayComic(curId, curUrl, title, '', '');
+    sidebarComics.push({ ID: curId, URL: curUrl, Title: title, Description: '', ImgDescription: '' });
+    document.body.classList.remove('checking');
+  } else {
+    goNotFound();
+    return;
+  }
+
+  await initSavedIds();
+  updateBookmarkBtn();
+  renderSidebar();
+
+  // Load nearby comics for sidebar
+  const nearbyIds = [curId-2, curId-1, curId+1, curId+2].filter(n => n >= 1);
+  nearbyIds.forEach(id => {
+    fetchComic(id).then(d => { if (d) { addToSidebar([d]); renderSidebar(); }});
+  });
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,601 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Микросервис поиска комиксов XKCD",
+        "title": "Search comics API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "Roman",
+            "email": "r.garanin2014@yandex.ru"
+        },
+        "license": {
+            "name": "MIT"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:28080",
+    "basePath": "/",
+    "paths": {
+        "/api/auth/register": {
+            "post": {
+                "description": "Создает нового пользователя с ролью user. Пароли password1 и password2 должны совпадать.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Регистрация пользователя",
+                "parameters": [
+                    {
+                        "description": "Данные для регистрации",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/rest.RegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Пользователь успешно создан"
+                    },
+                    "400": {
+                        "description": "Некорректный JSON или пароли не совпадают"
+                    },
+                    "500": {
+                        "description": "Ошибка регистрации пользователя"
+                    }
+                }
+            }
+        },
+        "/api/comics/{id}": {
+            "get": {
+                "description": "Возвращает данные одного комикса по его идентификатору.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "comics"
+                ],
+                "summary": "Получение комикса по ID",
+                "parameters": [
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "ID комикса",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Комикс найден",
+                        "schema": {
+                            "$ref": "#/definitions/core.Comics"
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный ID"
+                    },
+                    "404": {
+                        "description": "Комикс не найден"
+                    },
+                    "500": {
+                        "description": "Ошибка сервиса поиска"
+                    }
+                }
+            }
+        },
+        "/api/db": {
+            "delete": {
+                "description": "Удаляет все данные из таблицы. ВНИМАНИЕ: все данные будут безвозвратно удалены.",
+                "tags": [
+                    "database"
+                ],
+                "summary": "Удаление данных из БД.",
+                "responses": {
+                    "200": {
+                        "description": "Успешное удаление данных"
+                    },
+                    "500": {
+                        "description": "Ошибка на стороне сервера"
+                    }
+                }
+            }
+        },
+        "/api/db/stats": {
+            "get": {
+                "description": "Возвращает агрегированную статистику по комиксам в БД: общее кол-во слов, уникальных слов, комиксов загруженных при последнем обновлении и всего в базе.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "stats"
+                ],
+                "summary": "Статистика из базы данных.",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/rest.StatsReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка на стороне сервера"
+                    }
+                }
+            }
+        },
+        "/api/db/status": {
+            "get": {
+                "description": "Возвращает текущий статус процесса обновления БД: idle или running.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "status"
+                ],
+                "summary": "Статус процесса обновления.",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/rest.UpdateStatusReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка на стороне сервера"
+                    }
+                }
+            }
+        },
+        "/api/isearch": {
+            "get": {
+                "description": "Ищет комиксы в in-memory индексе по переданной фразе. Быстрее чем /api/search, результаты из памяти.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "search"
+                ],
+                "summary": "Поиск комиксов по индексу (in-memory)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Поисковая фраза",
+                        "name": "phrase",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "minimum": 0,
+                        "type": "integer",
+                        "description": "Макс. кол-во результатов",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/rest.SearchReply"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные параметры запроса"
+                    },
+                    "500": {
+                        "description": "Ошибка на стороне сервера"
+                    }
+                }
+            }
+        },
+        "/api/login": {
+            "post": {
+                "description": "Принимает имя и пароль, возвращает JWT токен.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Авторизация пользователя.",
+                "parameters": [
+                    {
+                        "description": "Данные для входа",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/rest.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "JWT токен",
+                        "schema": {
+                            "$ref": "#/definitions/rest.LoginReply"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные параметры запроса"
+                    },
+                    "401": {
+                        "description": "Неверный логин или пароль"
+                    },
+                    "500": {
+                        "description": "Ошибка на стороне сервера"
+                    }
+                }
+            }
+        },
+        "/api/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Возвращает данные текущего авторизованного пользователя и список сохраненных комиксов.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile"
+                ],
+                "summary": "Профиль пользователя",
+                "responses": {
+                    "200": {
+                        "description": "Профиль пользователя",
+                        "schema": {
+                            "$ref": "#/definitions/rest.ProfileReply"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован"
+                    },
+                    "500": {
+                        "description": "Ошибка получения профиля"
+                    }
+                }
+            }
+        },
+        "/api/me/saved/{id}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Добавляет комикс в избранное текущего авторизованного пользователя. Повторное сохранение того же комикса не создает дубликат.",
+                "tags": [
+                    "profile"
+                ],
+                "summary": "Сохранение комикса",
+                "parameters": [
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "ID комикса",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Комикс сохранен"
+                    },
+                    "400": {
+                        "description": "Некорректный ID"
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован"
+                    },
+                    "500": {
+                        "description": "Ошибка сохранения комикса"
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Удаляет комикс из избранного текущего авторизованного пользователя. Если комикс уже не был сохранен, операция все равно завершается успешно.",
+                "tags": [
+                    "profile"
+                ],
+                "summary": "Удаление комикса из избранного",
+                "parameters": [
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "ID комикса",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Комикс удален из избранного"
+                    },
+                    "400": {
+                        "description": "Некорректный ID"
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован"
+                    },
+                    "500": {
+                        "description": "Ошибка удаления комикса из избранного"
+                    }
+                }
+            }
+        },
+        "/api/ping": {
+            "get": {
+                "description": "Опрашивает все зарегистрированные микросервисы и возвращает их статус. Используется для health-check мониторинга.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ping"
+                ],
+                "summary": "Проверка сервисов.",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/rest.PingReply"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные параметры запроса"
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера"
+                    }
+                }
+            }
+        },
+        "/api/search": {
+            "get": {
+                "description": "Ищет комиксы в базе данных по переданной фразе. Результаты отсортированы по релевантности.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "search"
+                ],
+                "summary": "Поиск комиксов по ключевым словам.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Поисковая фраза",
+                        "name": "phrase",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "minimum": 0,
+                        "type": "integer",
+                        "description": "Макс. кол-во результатов",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/rest.SearchReply"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверные параметры запроса"
+                    },
+                    "500": {
+                        "description": "Ошибка на стороне сервера"
+                    }
+                }
+            }
+        },
+        "/api/update": {
+            "post": {
+                "description": "Загружает новые комиксы с XKCD и обновляет поисковый индекс. Если обновление уже запущено - возвращает 202.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "update"
+                ],
+                "summary": "Обновление комиксов в БД и Индексе.",
+                "responses": {
+                    "200": {
+                        "description": "Обновление запущено"
+                    },
+                    "202": {
+                        "description": "Обновление БД"
+                    },
+                    "500": {
+                        "description": "Ошибка, сервер в данный момент обновляет БД"
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "core.Comics": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "imgDescription": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "core.UpdateStatus": {
+            "type": "string",
+            "enum": [
+                "unknown",
+                "idle",
+                "running"
+            ],
+            "x-enum-varnames": [
+                "StatusUpdateUnknown",
+                "StatusUpdateIdle",
+                "StatusUpdateRunning"
+            ]
+        },
+        "rest.LoginReply": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "rest.LoginRequest": {
+            "type": "object",
+            "properties": {
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "rest.PingReply": {
+            "type": "object",
+            "properties": {
+                "replies": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "rest.ProfileReply": {
+            "type": "object",
+            "properties": {
+                "comics": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/core.Comics"
+                    }
+                },
+                "email": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "total": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 0
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "rest.RegisterRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password1": {
+                    "type": "string"
+                },
+                "password2": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "rest.SearchReply": {
+            "type": "object",
+            "properties": {
+                "comics": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/core.Comics"
+                    }
+                },
+                "total": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 0
+                }
+            }
+        },
+        "rest.StatsReply": {
+            "type": "object",
+            "properties": {
+                "comics_fetched": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 3190
+                },
+                "comics_total": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 3200
+                },
+                "words_total": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 10000
+                },
+                "words_unique": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 2555
+                }
+            }
+        },
+        "rest.UpdateStatusReply": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/core.UpdateStatus"
+                        }
+                    ],
+                    "example": "running"
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,3 @@
+log_level: DEBUG
+words_address: localhost:80
+maxSizeMsg: 20000

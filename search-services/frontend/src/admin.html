@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Policom — Admin</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{--bg:#06050e;--text:rgba(232,228,255,.85);--muted:rgba(232,228,255,.3);--accent:#a78bfa;--green:#34d399;--red:#f87171;--yellow:#fbbf24;}
+    body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+    .svg-f{position:fixed;width:0;height:0;overflow:hidden;pointer-events:none;}
+
+    .scene{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+    .orb{position:absolute;border-radius:50%;will-change:transform;animation:drift linear infinite;}
+    .o1{width:1000px;height:1000px;background:radial-gradient(circle at 40% 40%,rgba(76,29,149,.6) 0%,transparent 62%);top:-350px;left:-300px;animation-duration:38s;filter:blur(70px);}
+    .o2{width:700px;height:700px;background:radial-gradient(circle at 60% 60%,rgba(14,79,122,.5) 0%,transparent 62%);bottom:-280px;right:-240px;animation-duration:28s;animation-delay:-12s;filter:blur(80px);}
+    .o3{width:550px;height:550px;background:radial-gradient(circle at 50% 50%,rgba(109,40,217,.4) 0%,transparent 62%);top:40%;left:55%;animation-duration:22s;animation-delay:-19s;filter:blur(90px);}
+    @keyframes drift{0%,100%{transform:translate(0,0) scale(1);}25%{transform:translate(30px,-24px) scale(1.03);}50%{transform:translate(-22px,34px) scale(.97);}75%{transform:translate(24px,14px) scale(1.02);}}
+
+    #mg{position:fixed;width:500px;height:500px;border-radius:50%;pointer-events:none;z-index:2;transform:translate(-50%,-50%);background:radial-gradient(circle at center,rgba(167,139,250,.07) 0%,transparent 70%);filter:blur(30px);transition:left .12s cubic-bezier(.22,1,.36,1),top .12s cubic-bezier(.22,1,.36,1);}
+
+    /* ── GLASS ── */
+    .g{background:linear-gradient(175deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,.025) 100%);backdrop-filter:blur(52px) saturate(200%) brightness(1.08);-webkit-backdrop-filter:blur(52px) saturate(200%) brightness(1.08);border:1px solid rgba(255,255,255,.09);border-bottom-color:rgba(255,255,255,.04);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.2),inset 0 -1px 0 rgba(0,0,0,.15),0 0 0 1px rgba(0,0,0,.22),0 8px 32px rgba(0,0,0,.38);position:relative;}
+    .g::before{content:'';position:absolute;top:0;left:18%;right:18%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.16),transparent);}
+
+    /* ── HEADER ── */
+    header{position:fixed;top:0;left:0;right:0;z-index:100;height:56px;display:flex;align-items:center;padding:0 24px;gap:14px;background:rgba(6,5,14,.65);backdrop-filter:blur(52px) saturate(200%);-webkit-backdrop-filter:blur(52px) saturate(200%);border-bottom:1px solid rgba(255,255,255,.06);}
+    header::after{content:'';position:absolute;bottom:-1px;left:8%;right:8%;height:1px;background:linear-gradient(90deg,transparent,rgba(167,139,250,.18),transparent);}
+    .back{display:flex;align-items:center;gap:2px;font-size:14px;font-weight:500;color:rgba(167,139,250,.75);text-decoration:none;transition:opacity .15s;}
+    .back:hover{opacity:.6;}
+    .back svg{width:18px;height:18px;}
+    header h1{position:absolute;left:50%;transform:translateX(-50%);font-size:16px;font-weight:700;color:rgba(232,228,255,.82);letter-spacing:-.2px;pointer-events:none;}
+    .badge{padding:3px 10px;background:linear-gradient(175deg,rgba(139,92,246,.2) 0%,rgba(109,40,217,.12) 100%);border:1px solid rgba(167,139,250,.22);border-bottom-color:rgba(109,40,217,.3);border-radius:8px;font-size:11px;font-weight:600;color:rgba(167,139,250,.85);box-shadow:inset 0 1px 0 rgba(255,255,255,.15);margin-left:auto;}
+
+    /* ── LAYOUT ── */
+    .layout{display:flex;padding-top:56px;min-height:100vh;}
+
+    /* ── SIDEBAR ── */
+    .sidebar{position:fixed;top:56px;bottom:0;left:0;width:200px;background:rgba(6,5,14,.65);backdrop-filter:blur(48px) saturate(180%);-webkit-backdrop-filter:blur(48px) saturate(180%);border-right:1px solid rgba(255,255,255,.055);padding:16px 10px;display:flex;flex-direction:column;gap:2px;z-index:50;}
+    .sep{font-size:10px;font-weight:600;color:rgba(232,228,255,.2);letter-spacing:.1em;text-transform:uppercase;padding:14px 10px 6px;}
+    .navitem{display:flex;align-items:center;gap:10px;padding:9px 12px;border:none;background:transparent;width:100%;text-align:left;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;font-family:inherit;border-radius:11px;transition:background .15s,color .15s;text-decoration:none;}
+    .navitem:hover{background:rgba(255,255,255,.04);color:var(--text);}
+    .navitem.on{background:linear-gradient(175deg,rgba(139,92,246,.18) 0%,rgba(109,40,217,.1) 100%);border:1px solid rgba(167,139,250,.15);border-bottom-color:rgba(109,40,217,.2);color:rgba(167,139,250,.92);box-shadow:inset 0 1px 0 rgba(255,255,255,.12);}
+    .navitem svg{width:15px;height:15px;flex-shrink:0;}
+    .ct{margin-left:auto;min-width:18px;height:18px;padding:0 5px;background:rgba(248,113,113,.18);border-radius:6px;font-size:10px;font-weight:700;color:rgba(248,113,113,.85);display:flex;align-items:center;justify-content:center;}
+
+    /* ── MAIN ── */
+    main{margin-left:200px;flex:1;padding:24px 28px;z-index:1;position:relative;}
+    .page{display:none;}
+    .page.on{display:block;}
+    @keyframes pageIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+    .page.on{animation:pageIn .32s cubic-bezier(.22,1,.36,1) both;}
+    .ptitle{font-size:22px;font-weight:800;letter-spacing:-.5px;margin-bottom:3px;}
+    .psub{font-size:13px;color:var(--muted);margin-bottom:22px;}
+
+    /* ── STAT CARDS ── */
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+    @media(max-width:900px){.stats{grid-template-columns:repeat(2,1fr);}}
+    .scard{border-radius:16px;padding:18px 16px;}
+    .scard .si{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;border:1px solid rgba(255,255,255,.06);}
+    .scard .si svg{width:16px;height:16px;}
+    .scard .sv{font-size:24px;font-weight:800;letter-spacing:-.5px;margin-bottom:2px;}
+    .scard .sl{font-size:11px;color:var(--muted);}
+
+    /* ── 2-col ── */
+    .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+    @media(max-width:800px){.g2{grid-template-columns:1fr;}}
+
+    /* ── STATUS DOT ── */
+    .status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+    .status-dot.idle{background:var(--green);box-shadow:0 0 8px rgba(52,211,153,.6);}
+    .status-dot.running{background:var(--yellow);box-shadow:0 0 8px rgba(251,191,36,.6);animation:pulse 1.2s ease-in-out infinite;}
+    .status-dot.unknown,.status-dot.err{background:rgba(232,228,255,.25);}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.6;transform:scale(1.35);}}
+
+    /* ── PING GRID ── */
+    .ping-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px;}
+    .ping-item{display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);}
+    .ping-name{font-size:12px;font-weight:500;flex:1;}
+    .ping-val{font-size:11px;font-weight:700;}
+    .ping-val.ok{color:var(--green);}
+    .ping-val.err{color:var(--red);}
+
+    /* ── PROGRESS ── */
+    .prog-row{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px;margin-top:10px;}
+    .prog-track{height:2px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;}
+    .prog-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,rgba(167,139,250,1),rgba(103,232,249,.8));box-shadow:0 0 8px rgba(167,139,250,.5);}
+
+    /* ── LOG ── */
+    .log-title{font-size:12px;font-weight:700;color:rgba(232,228,255,.55);margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em;}
+    .log-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);}
+    .log-row:last-child{border-bottom:none;}
+    .log-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+    .log-dot.g{background:var(--green);}
+    .log-dot.y{background:var(--yellow);}
+    .log-dot.r{background:var(--red);}
+    .log-text{flex:1;font-size:12px;color:rgba(232,228,255,.55);font-family:ui-monospace,monospace;}
+    .log-time{font-size:10px;color:var(--muted);}
+
+    /* ── STATUS LAMP ── */
+    .status-lamp{
+      width:22px;height:22px;border-radius:50%;flex-shrink:0;margin-left:auto;
+      position:relative;
+      background:rgba(232,228,255,.1);
+      border:1px solid rgba(255,255,255,.08);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 0 0 1px rgba(0,0,0,.22);
+      transition:background .4s cubic-bezier(.22,1,.36,1),box-shadow .4s cubic-bezier(.22,1,.36,1);
+    }
+    /* Specular highlight — glass sphere illusion */
+    .status-lamp::after{
+      content:'';position:absolute;
+      top:3px;left:4px;width:8px;height:5px;
+      border-radius:50%;
+      background:rgba(255,255,255,.55);
+      filter:blur(1px);
+      pointer-events:none;
+    }
+    /* Green — сервер активен */
+    .status-lamp.green{
+      background:radial-gradient(circle at 38% 32%,#6ee7b7,#34d399 58%,#059669 100%);
+      box-shadow:
+        0 0 8px  rgba(52,211,153,.75),
+        0 0 18px rgba(52,211,153,.38),
+        0 0 0 1px rgba(0,0,0,.2),
+        inset 0 1px 0 rgba(255,255,255,.35);
+    }
+    /* Yellow — идёт загрузка */
+    .status-lamp.yellow{
+      background:radial-gradient(circle at 38% 32%,#fde68a,#fbbf24 58%,#d97706 100%);
+      box-shadow:
+        0 0 8px  rgba(251,191,36,.75),
+        0 0 18px rgba(251,191,36,.38),
+        0 0 0 1px rgba(0,0,0,.2),
+        inset 0 1px 0 rgba(255,255,255,.35);
+      animation:lamp-breathe 1.4s ease-in-out infinite;
+    }
+    /* Red — ошибка / недоступен */
+    .status-lamp.red{
+      background:radial-gradient(circle at 38% 32%,#fca5a5,#f87171 58%,#dc2626 100%);
+      box-shadow:
+        0 0 8px  rgba(248,113,113,.75),
+        0 0 18px rgba(248,113,113,.38),
+        0 0 0 1px rgba(0,0,0,.2),
+        inset 0 1px 0 rgba(255,255,255,.28);
+    }
+    @keyframes lamp-breathe{
+      0%,100%{box-shadow:0 0 8px rgba(251,191,36,.75),0 0 18px rgba(251,191,36,.38),0 0 0 1px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.35);}
+      50%    {box-shadow:0 0 14px rgba(251,191,36,.95),0 0 30px rgba(251,191,36,.55),0 0 0 1px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.4);}
+    }
+
+    /* ── BUTTONS ── */
+    .btn-primary{width:100%;padding:12px;background:linear-gradient(175deg,rgba(139,92,246,.85) 0%,rgba(109,40,217,.78) 100%);border:1px solid rgba(167,139,250,.2);border-bottom-color:rgba(76,29,149,.55);border-radius:12px;font-size:13px;font-weight:600;font-family:inherit;color:white;cursor:pointer;box-shadow:inset 0 1.5px 0 rgba(255,255,255,.25),inset 0 -1px 0 rgba(0,0,0,.2),0 4px 14px rgba(76,29,149,.35);transition:opacity .15s,transform .12s;}
+    .btn-primary:hover{opacity:.9;}
+    .btn-primary:active{transform:scale(.98);}
+    .btn-primary:disabled{opacity:.4;cursor:default;}
+    .btn-danger{width:100%;padding:12px;background:linear-gradient(175deg,rgba(239,68,68,.16) 0%,rgba(220,38,38,.08) 100%);border:1px solid rgba(239,68,68,.18);border-bottom-color:rgba(220,38,38,.28);border-radius:12px;font-size:13px;font-weight:600;font-family:inherit;color:rgba(248,113,113,.85);cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.08);transition:opacity .15s;}
+    .btn-danger:hover{opacity:.85;}
+
+    /* ── TABLE (comics) ── */
+    .tbl-wrap{border-radius:16px;overflow:hidden;}
+    .tbl-head{display:flex;align-items:center;gap:12px;padding:14px 18px 12px;border-bottom:1px solid rgba(255,255,255,.05);}
+    .tbl-head h3{font-size:14px;font-weight:700;flex:1;}
+    table{width:100%;border-collapse:collapse;}
+    th{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:10px 18px;text-align:left;border-bottom:1px solid rgba(255,255,255,.05);}
+    td{padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;vertical-align:middle;}
+    tr:last-child td{border-bottom:none;}
+    tr:hover td{background:rgba(255,255,255,.015);}
+    .cinfo{display:flex;align-items:center;gap:10px;}
+    .cthumb{width:40px;height:30px;border-radius:6px;flex-shrink:0;object-fit:contain;background:#fff;}
+    .act-btn{padding:5px 11px;background:linear-gradient(175deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,.025) 100%);border:1px solid rgba(255,255,255,.09);border-bottom-color:rgba(0,0,0,.15);border-radius:8px;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;color:var(--text);box-shadow:inset 0 1px 0 rgba(255,255,255,.1);transition:background .15s;margin-right:4px;}
+    .act-btn:hover{background:linear-gradient(175deg,rgba(255,255,255,.11) 0%,rgba(255,255,255,.05) 100%);}
+
+    /* search input */
+    .search-input{width:100%;padding:11px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:11px;font-size:14px;font-family:inherit;color:var(--text);outline:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.08);transition:border-color .2s;}
+    .search-input:focus{border-color:rgba(167,139,250,.35);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 0 0 3px rgba(109,40,217,.1);}
+    .search-input::placeholder{color:rgba(232,228,255,.2);}
+  </style>
+</head>
+<body>
+
+<svg class="svg-f" aria-hidden="true">
+  <defs>
+    <filter id="lg" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB">
+      <feTurbulence type="turbulence" baseFrequency="0.009 0.006" numOctaves="4" seed="5" result="t">
+        <animate attributeName="baseFrequency" values="0.009 0.006;0.013 0.009;0.010 0.007;0.009 0.006" dur="18s" repeatCount="indefinite"/>
+        <animate attributeName="seed" values="5;8;11;5" dur="26s" repeatCount="indefinite"/>
+      </feTurbulence>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0  0 0 0 0 1" in="t" result="dm"/>
+      <feDisplacementMap in="SourceGraphic" in2="dm" scale="18" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
+
+<div class="scene"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
+<div id="mg"></div>
+
+<header>
+  <a class="back" href="/profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>Назад</a>
+  <a href="/" style="position:absolute;left:50%;transform:translateX(-50%);font-size:16px;font-weight:700;color:rgba(232,228,255,.82);letter-spacing:-.2px;text-decoration:none;pointer-events:auto;">Policom</a>
+  <span class="badge">Admin</span>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <span class="sep">Панель</span>
+    <button class="navitem on" onclick="show('dash',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Дашборд
+    </button>
+    <button class="navitem" onclick="show('comics',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+      Все комиксы
+      <span class="ct" id="comicCount">—</span>
+    </button>
+    <div style="flex:1"></div>
+    <a class="navitem" href="/" style="color:rgba(248,113,113,.6);margin-bottom:4px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      На сайт
+    </a>
+  </aside>
+
+  <main>
+
+    <!-- ── DASHBOARD ── -->
+    <div class="page on" id="page-dash">
+      <p class="ptitle">Дашборд</p>
+      <p class="psub" id="dashSub">Загрузка…</p>
+
+      <!-- Stats -->
+      <div class="stats">
+        <div class="scard g" style="border-radius:16px">
+          <div class="si" style="background:rgba(167,139,250,.1)"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(167,139,250,.85)" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div>
+          <div class="sv" id="stComicsTotal">—</div><div class="sl">Комиксов в базе</div>
+        </div>
+        <div class="scard g" style="border-radius:16px">
+          <div class="si" style="background:rgba(103,232,249,.08)"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(103,232,249,.75)" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+          <div class="sv" id="stComicsFetched">—</div><div class="sl">Загружено</div>
+        </div>
+        <div class="scard g" style="border-radius:16px">
+          <div class="si" style="background:rgba(52,211,153,.08)"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(52,211,153,.8)" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+          <div class="sv" id="stWordsTotal">—</div><div class="sl">Слов</div>
+        </div>
+        <div class="scard g" style="border-radius:16px">
+          <div class="si" style="background:rgba(251,191,36,.08)"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(251,191,36,.75)" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+          <div class="sv" id="stWordsUnique">—</div><div class="sl">Уникальных слов</div>
+        </div>
+      </div>
+
+      <div class="g2">
+        <!-- Server status + controls -->
+        <div class="g" style="border-radius:16px;padding:18px 20px;">
+          <p class="log-title">Статус сервера</p>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+            <div class="status-dot unknown" id="dbDot"></div>
+            <span id="dbStatusText" style="font-size:14px;font-weight:700;">Загрузка…</span>
+            <div class="status-lamp" id="ts" title="Статус сервера"></div>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:16px;" id="dbStatusSub">Проверяем…</p>
+
+          <p class="log-title">Сервисы</p>
+          <div class="ping-grid">
+            <div class="ping-item"><div class="status-dot unknown" id="dw"></div><span class="ping-name">words</span><span class="ping-val" id="pw">…</span></div>
+            <div class="ping-item"><div class="status-dot unknown" id="du"></div><span class="ping-name">update</span><span class="ping-val" id="pu">…</span></div>
+            <div class="ping-item"><div class="status-dot unknown" id="ds"></div><span class="ping-name">search</span><span class="ping-val" id="ps">…</span></div>
+            <div class="ping-item"><div class="status-dot unknown" id="da"></div><span class="ping-name">aaa</span><span class="ping-val" id="pa">…</span></div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="g" style="border-radius:16px;padding:18px 20px;display:flex;flex-direction:column;">
+          <p class="log-title">Управление</p>
+          <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+            <button class="btn-primary" id="btnUpdate" onclick="triggerUpdate()" style="flex:1;">Запустить обновление xkcd</button>
+            <button class="btn-danger"  onclick="dropDB()" style="flex:1;">Удалить базу данных</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Log -->
+      <div class="g" style="border-radius:16px;padding:16px 20px;">
+        <p class="log-title">Лог активности</p>
+        <div id="actLog">
+          <div class="log-row"><div class="log-dot g"></div><div class="log-text">[INFO] Панель администратора открыта</div><div class="log-time">только что</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ALL COMICS ── -->
+    <div class="page" id="page-comics">
+      <p class="ptitle">Все комиксы</p>
+      <p class="psub">Поиск по базе xkcd</p>
+      <div class="tbl-wrap g" style="margin-bottom:14px;">
+        <div class="tbl-head">
+          <h3>Поиск</h3>
+        </div>
+        <div style="padding:12px 18px;display:flex;gap:10px;">
+          <input class="search-input" type="text" id="comicQ" placeholder="Введите фразу…"
+            onkeydown="if(event.key==='Enter')comicSearch()"/>
+          <button class="act-btn" onclick="comicSearch()" style="padding:11px 18px;white-space:nowrap;">Найти</button>
+        </div>
+        <div id="comicResults" style="padding:0 18px 14px;">
+          <p style="font-size:13px;color:var(--muted);">Введите фразу для поиска комиксов.</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const API = '';
+const jwt = localStorage.getItem('jwt') || '';
+const authH = { 'Authorization': `Bearer ${jwt}` };
+const REQUEST_TIMEOUT = 10000;
+
+function decodeJwt(token) {
+  const raw = token.split('.')[1];
+  const normalized = raw.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized.padEnd(normalized.length + (4 - normalized.length % 4) % 4, '=');
+  return JSON.parse(atob(padded));
+}
+
+/* Admin role guard */
+(function() {
+  if (!jwt) { location.href = '/login'; return; }
+  try {
+    const payload = decodeJwt(jwt);
+    if (payload.role !== 'admin') { location.href = '/'; }
+  } catch { location.href = '/login'; }
+})();
+
+/* Mouse glow */
+document.addEventListener('mousemove', e => {
+  const mg = document.getElementById('mg');
+  mg.style.left = e.clientX + 'px';
+  mg.style.top  = e.clientY + 'px';
+});
+
+/* Nav */
+function show(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.navitem').forEach(n => n.classList.remove('on'));
+  document.getElementById('page-' + id).classList.add('on');
+  if (btn) btn.classList.add('on');
+}
+
+/* Status dot */
+function setDot(elId, status) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.className = 'status-dot ' + (status === 'running' ? 'running' : status === 'idle' ? 'idle' : 'unknown');
+}
+
+/* Log */
+function addLog(type, text) {
+  const log = document.getElementById('actLog');
+  const now = new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const row = `<div class="log-row"><div class="log-dot ${type}"></div><div class="log-text">${text}</div><div class="log-time">${now}</div></div>`;
+  log.insertAdjacentHTML('afterbegin', row);
+  // Keep max 10 entries
+  const rows = log.querySelectorAll('.log-row');
+  if (rows.length > 10) rows[rows.length-1].remove();
+}
+
+async function fetchWithTimeout(url, options = {}, timeout = REQUEST_TIMEOUT) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/* Load stats */
+async function loadStats() {
+  try {
+    const r = await fetchWithTimeout(`${API}/api/db/stats`, { headers: authH });
+    const d = await r.json();
+    document.getElementById('stComicsTotal').textContent   = d.comics_total?.toLocaleString() ?? '—';
+    document.getElementById('stComicsFetched').textContent = d.comics_fetched?.toLocaleString() ?? '—';
+    document.getElementById('stWordsTotal').textContent    = d.words_total?.toLocaleString() ?? '—';
+    document.getElementById('stWordsUnique').textContent   = d.words_unique?.toLocaleString() ?? '—';
+    document.getElementById('comicCount').textContent = d.comics_total ?? '—';
+    document.getElementById('dashSub').textContent    = 'Обновлено: ' + new Date().toLocaleTimeString('ru-RU');
+  } catch { document.getElementById('dashSub').textContent = 'Нет соединения с сервером'; }
+}
+
+/* Load status */
+let statusVal = 'unknown';
+function setLamp(status) {
+  const lamp = document.getElementById('ts');
+  if (!lamp) return;
+  lamp.className = 'status-lamp';
+  if      (status === 'idle')    lamp.classList.add('green');
+  else if (status === 'running') lamp.classList.add('yellow');
+  else                           lamp.classList.add('red');
+}
+function renderStatus(status) {
+  statusVal = status;
+  const labels = { idle:'Активен', running:'Обновляется', unknown:'Недоступен' };
+  const subs   = { idle:'Сервер работает. Готов к обновлению.', running:'Загружает комиксы с xkcd.com…', unknown:'Нет связи с сервером' };
+  setDot('dbDot', status);
+  setLamp(status);
+  document.getElementById('dbStatusText').textContent = labels[status] || status;
+  document.getElementById('dbStatusSub').textContent  = subs[status]  || '';
+  const btn = document.getElementById('btnUpdate');
+  if (btn) {
+    btn.disabled = status === 'running';
+    btn.textContent = status === 'running' ? 'Обновление идёт…' : 'Запустить обновление xkcd';
+  }
+}
+async function loadStatus() {
+  try {
+    const r = await fetchWithTimeout(`${API}/api/db/status`, { headers: authH });
+    const d = await r.json();
+    renderStatus(d.status);
+  } catch {
+    renderStatus('unknown');
+  }
+}
+
+/* Load ping */
+async function loadPing() {
+  try {
+    const r = await fetchWithTimeout(`${API}/api/ping`, { headers: authH });
+    const d = await r.json();
+    const map = { words:['pw','dw'], update:['pu','du'], search:['ps','ds'], aaa:['pa','da'] };
+    Object.entries(map).forEach(([k,[vid,did]]) => {
+      const ok = d.replies[k] === 'ok';
+      const vel = document.getElementById(vid); if(vel){vel.textContent=ok?'ok':'down';vel.className='ping-val '+(ok?'ok':'err');}
+      setDot(did, ok?'idle':'unknown');
+    });
+    addLog('g', '[PING] Все сервисы проверены');
+  } catch { addLog('r', '[PING] Ошибка подключения к API'); }
+}
+
+/* Toggle update */
+async function toggleUpdate() {
+  if (statusVal === 'running') return;
+  await triggerUpdate();
+}
+async function triggerUpdate() {
+  if (!jwt) { alert('Необходима авторизация администратора.'); return; }
+  if (statusVal === 'running') {
+    addLog('y','[UPDATE] Обновление уже выполняется');
+    return;
+  }
+  const btn = document.getElementById('btnUpdate');
+  btn.disabled = true; btn.textContent = 'Запускаю…';
+  try {
+    const r = await fetchWithTimeout(`${API}/api/db/update`, { method:'POST', headers:authH }, 12000);
+    if (r.ok || r.status===202) {
+      addLog('g','[UPDATE] Обновление запущено');
+      renderStatus('running');
+      loadStatus();
+    }
+    else { addLog('r','[UPDATE] Ошибка: ' + r.status); alert('Ошибка: ' + r.status); }
+  } catch(e) {
+    const timedOut = e.name === 'AbortError';
+    addLog('r', timedOut ? '[UPDATE] API не ответил за 12 секунд' : '[UPDATE] Нет соединения');
+    loadStatus();
+  }
+  if (statusVal !== 'running') {
+    btn.disabled=false; btn.textContent='Запустить обновление xkcd';
+  }
+}
+
+/* Drop DB */
+async function dropDB() {
+  if (!jwt) { alert('Необходима авторизация.'); return; }
+  if (!confirm('Удалить ВСЕ данные? Это необратимо!')) return;
+  try {
+    const r = await fetchWithTimeout(`${API}/api/db`, { method:'DELETE', headers:authH });
+    if (r.ok) { addLog('r','[DB] База данных удалена'); await loadStats(); await loadStatus(); }
+    else { addLog('r','[DB] Ошибка удаления: '+r.status); }
+  } catch(e) { addLog('r','[DB] Ошибка соединения'); }
+}
+
+/* Comic search */
+async function comicSearch() {
+  const q = document.getElementById('comicQ').value.trim();
+  const box = document.getElementById('comicResults');
+  if (!q) { box.innerHTML='<p style="font-size:13px;color:var(--muted);">Введите фразу.</p>'; return; }
+  box.innerHTML='<p style="font-size:13px;color:var(--muted);">Поиск…</p>';
+  try {
+    const r = await fetchWithTimeout(`${API}/api/search?phrase=${encodeURIComponent(q)}&limit=12`);
+    const d = await r.json();
+    if (!d.comics?.length) { box.innerHTML='<p style="font-size:13px;color:var(--muted);">Ничего не найдено.</p>'; return; }
+    box.innerHTML = `<table style="margin-top:2px;">
+      <thead><tr><th>Изображение</th><th>ID</th><th></th></tr></thead>
+      <tbody>${d.comics.map(c=>`
+        <tr>
+          <td><div class="cinfo"><img class="cthumb" src="${c.URL}" onerror="this.style.display='none'"/><span style="font-size:13px;font-weight:500;color:var(--text);">${c.Title || `xkcd #${c.ID}`}</span></div></td>
+          <td style="color:var(--muted);font-size:12px;">#${c.ID}</td>
+          <td><a href="/reader?id=${c.ID}" class="act-btn" target="_blank">Читать</a></td>
+        </tr>`).join('')}
+      </tbody></table>
+      <p style="font-size:11px;color:var(--muted);margin-top:10px;">Результатов: ${d.total}</p>`;
+  } catch(e) { box.innerHTML=`<p style="font-size:13px;color:rgba(248,113,113,.8);">Ошибка: ${e.message}</p>`; }
+}
+
+/* Init */
+(async()=>{ await Promise.all([loadStats(),loadStatus(),loadPing()]); setInterval(loadStatus,8000); })();
+</script>
+</body>
+</html>
