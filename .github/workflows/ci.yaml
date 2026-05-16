@@ -23,7 +23,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version-file: search-services/go.mod
 
       - name: Install lint tools
         run: |
@@ -51,7 +51,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version-file: search-services/go.mod
 
       - name: Install make
         run: |
@@ -73,7 +73,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version-file: search-services/go.mod
 
       - name: Install make
         run: |
