@@ -59,7 +59,7 @@ jobs:
           sudo apt-get install -y make
 
       - name: Run build
-        run: make up
+        run: make up container_runtime=docker
 
   test:
     name: test 
@@ -81,5 +81,5 @@ jobs:
           sudo apt-get install -y make
 
       - name: Run tests
-        run: make tests
+        run: make tests container_runtime=docker
 
