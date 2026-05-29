@@ -22,7 +22,7 @@ The system is split into four independent Go services:
 
 NATS is used for communication between Update and Search.
 
-![Architecture](docs/architecture.png)
+![Architecture](docs/architecture_en.png)
 
 ---
 
@@ -35,7 +35,7 @@ NATS is used for communication between Update and Search.
 | `users_comics_saved`  | M:N — users' saved (favourite) comics, with timestamp     |
 | `comics_keywords`     | Normalized keywords per comic, used for index building    |
 
-![Database schema](docs/database.png)
+![Database schema](docs/database_en.png)
 
 ---
 
