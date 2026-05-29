@@ -1,4 +1,5 @@
 # Policom
+[🇷🇺 Читать на Русском](README_ru.md)
 
 A microservice system for searching [XKCD](https://xkcd.com) comics by keyword, built in Go using **Hexagonal Architecture** (Ports & Adapters).
 
